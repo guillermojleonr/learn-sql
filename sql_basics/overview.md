@@ -75,10 +75,6 @@ En base a un scan de este repo, para mayor info ver el proyecto "jobs" que puede
 - `INFORMATION_SCHEMA.TABLE_CONSTRAINTS`
 - `SHOW VARIABLES`
 
-## Nivel de Dominio
-
-**Nivel: Intermedio-Avanzado**
-
 Capacidades demostradas:
 - Diseño completo de bases de datos relacionales
 - Implementación de integridad referencial compleja
