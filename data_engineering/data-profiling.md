@@ -1,6 +1,6 @@
 # Data Profiling
 
-Antes de escribir transformaciones, es necesario explorar los datos para identificar qué campos tienen problemas. Este proceso se llama **data profiling** y es incremental.
+Antes de escribir transformaciones, es necesario explorar los datos para identificar qué campos tienen problemas. Este proceso se llama **data profiling** y es incremental: lo haces al principio pero luego lo sigues haciendo para depurar los procesos
 
 ## Query básica de profiling
 

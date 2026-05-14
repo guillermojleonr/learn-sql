@@ -1,3 +1,295 @@
+-- ============================================================
+-- SHIPMENTS DATABASE DUMP
+-- SQL Dialect: MariaDB/MySQL
+-- ============================================================
+
+SET FOREIGN_KEY_CHECKS = 0;
+
+-- ============================================================
+-- DROP TABLES (in reverse order to handle dependencies)
+-- ============================================================
+
+DROP TABLE IF EXISTS shipments;
+DROP TABLE IF EXISTS cars;
+DROP TABLE IF EXISTS client_zone_price;
+DROP TABLE IF EXISTS drivers;
+DROP TABLE IF EXISTS clients;
+DROP TABLE IF EXISTS rates;
+DROP TABLE IF EXISTS addressees;
+DROP TABLE IF EXISTS address_districts;
+DROP TABLE IF EXISTS address_streets;
+DROP TABLE IF EXISTS zones;
+DROP TABLE IF EXISTS geolocation;
+
+SET FOREIGN_KEY_CHECKS = 1;
+
+-- ============================================================
+-- TABLE CREATION
+-- ============================================================
+
+-- Parent tables first (no foreign keys)
+
+CREATE TABLE zones (
+    zone_id TINYINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    name VARCHAR(20) NOT NULL,
+    PRIMARY KEY (zone_id)
+);
+
+CREATE TABLE address_streets (
+    address_street_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    street_name VARCHAR(100) NOT NULL,
+    PRIMARY KEY (address_street_id)
+);
+
+CREATE TABLE addressees (
+    addressees_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    last_name VARCHAR(50) NOT NULL,
+    first_name VARCHAR(50) NOT NULL,
+    phone INT(9) UNSIGNED NOT NULL,
+    phone_prefix VARCHAR(4) NOT NULL,
+    national_id INT(8) UNSIGNED NOT NULL UNIQUE,
+    national_id_verifier CHAR(1) NOT NULL,
+    PRIMARY KEY (addressees_id),
+    CONSTRAINT addressees_phone_len CHECK (CHAR_LENGTH(phone) = 9)
+);
+
+-- Address districts depends on zones and address_streets
+CREATE TABLE address_districts (
+    district_id SMALLINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    name VARCHAR(50) NOT NULL,
+    address_street_id BIGINT UNSIGNED NOT NULL,
+    zone_id TINYINT UNSIGNED NOT NULL,
+    PRIMARY KEY (district_id),
+    FOREIGN KEY (address_street_id) REFERENCES address_streets(address_street_id),
+    FOREIGN KEY (zone_id) REFERENCES zones(zone_id)
+);
+
+-- Rates table (may not be fully implemented)
+CREATE TABLE rates (
+    rate_id SMALLINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    name VARCHAR(20) NOT NULL,
+    price INT UNSIGNED NOT NULL,
+    zone_id TINYINT UNSIGNED NOT NULL,
+    PRIMARY KEY (rate_id),
+    FOREIGN KEY (zone_id) REFERENCES zones(zone_id)
+);
+
+-- Clients depends on address_streets and address_districts
+CREATE TABLE clients (
+    client_id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    national_id INT(8) UNSIGNED NOT NULL UNIQUE,
+    national_id_verifier CHAR(1) NOT NULL,
+    name VARCHAR(50) NOT NULL,
+    legal_name VARCHAR(50) NOT NULL,
+    phone INT(9) UNSIGNED NOT NULL,
+    phone_prefix VARCHAR(4) NOT NULL,
+    credit_condition VARCHAR(10) NOT NULL,
+    address_street_id BIGINT UNSIGNED NOT NULL,
+    district_id SMALLINT UNSIGNED NOT NULL,
+    PRIMARY KEY (client_id),
+    FOREIGN KEY (address_street_id) REFERENCES address_streets(address_street_id),
+    FOREIGN KEY (district_id) REFERENCES address_districts(district_id),
+    CONSTRAINT clients_phone_len CHECK (CHAR_LENGTH(phone) = 9)
+);
+
+-- Client zone price (replaces rates for client-specific pricing)
+CREATE TABLE client_zone_price (
+    client_id INT(10) UNSIGNED NOT NULL,
+    zone_id TINYINT(3) UNSIGNED NOT NULL,
+    price INT UNSIGNED NOT NULL,
+    PRIMARY KEY (client_id, zone_id),
+    FOREIGN KEY (client_id) REFERENCES clients(client_id),
+    FOREIGN KEY (zone_id) REFERENCES zones(zone_id)
+);
+
+-- Drivers depends on address_streets and address_districts
+CREATE TABLE drivers (
+    driver_id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    national_id INT(8) UNSIGNED NOT NULL UNIQUE,
+    national_id_verifier CHAR(1) NOT NULL,
+    first_name VARCHAR(50) NOT NULL,
+    last_name VARCHAR(50) NOT NULL,
+    active BIT NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    phone INT(9) UNSIGNED NOT NULL,
+    phone_prefix VARCHAR(4) NOT NULL,
+    address_street_id BIGINT UNSIGNED NOT NULL,
+    district_id SMALLINT UNSIGNED NOT NULL,
+    PRIMARY KEY (driver_id),
+    FOREIGN KEY (address_street_id) REFERENCES address_streets(address_street_id),
+    FOREIGN KEY (district_id) REFERENCES address_districts(district_id),
+    CONSTRAINT drivers_phone_len CHECK (CHAR_LENGTH(phone) = 9)
+);
+
+-- Cars depends on drivers
+CREATE TABLE cars (
+    car_id VARCHAR(6) NOT NULL,
+    car_model VARCHAR(20) NOT NULL,
+    driver_id INT UNSIGNED NOT NULL,
+    PRIMARY KEY (car_id),
+    FOREIGN KEY (driver_id) REFERENCES drivers(driver_id),
+    CONSTRAINT car_id_len CHECK (CHAR_LENGTH(car_id) = 6)
+);
+
+-- Shipments depends on multiple tables
+CREATE TABLE shipments (
+    shipment_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    client_internal_id INT UNSIGNED NOT NULL,
+    quantity INT UNSIGNED NOT NULL,
+    status VARCHAR(10) NOT NULL,
+    comments VARCHAR(255) NOT NULL,
+    priority TINYINT UNSIGNED NOT NULL,
+    delivery_date DATE NOT NULL,
+    reception_date DATE NOT NULL,
+    payment_comment VARCHAR(10) NOT NULL,
+    shipment_type TINYINT UNSIGNED NOT NULL,
+    driver_id INT UNSIGNED NOT NULL,
+    client_id INT UNSIGNED NOT NULL,
+    rate_id SMALLINT UNSIGNED NOT NULL,
+    address_street_id BIGINT UNSIGNED NOT NULL,
+    district_id SMALLINT UNSIGNED NOT NULL,
+    addressees_id BIGINT UNSIGNED NOT NULL,
+    PRIMARY KEY (shipment_id),
+    UNIQUE (client_internal_id),
+    FOREIGN KEY (driver_id) REFERENCES drivers(driver_id),
+    FOREIGN KEY (client_id) REFERENCES clients(client_id),
+    FOREIGN KEY (rate_id) REFERENCES rates(rate_id),
+    FOREIGN KEY (address_street_id) REFERENCES address_streets(address_street_id),
+    FOREIGN KEY (district_id) REFERENCES address_districts(district_id),
+    FOREIGN KEY (addressees_id) REFERENCES addressees(addressees_id)
+);
+
+-- Geolocation (not fully implemented)
+CREATE TABLE geolocation (
+    address_street_id BIGINT UNSIGNED NOT NULL,
+    district_id SMALLINT UNSIGNED NOT NULL,
+    latitude DECIMAL(19,17) NOT NULL,
+    longitude DECIMAL(19,17) NOT NULL,
+    PRIMARY KEY (address_street_id, district_id),
+    FOREIGN KEY (address_street_id) REFERENCES address_streets(address_street_id),
+    FOREIGN KEY (district_id) REFERENCES address_districts(district_id)
+);
+
+-- ============================================================
+-- DATA INSERTS (in parent-child order)
+-- ============================================================
+
+-- Zones
+INSERT INTO zones (name) VALUES
+    ('Zona 2'),
+    ('Zona 3'),
+    ('ZONE 5'),
+    ('ZONE 6'),
+    ('ZONE 7');
+
+-- Address Streets
+INSERT INTO address_streets (street_name) VALUES
+    ('RIO DE JANEIRO 385'),
+    ('LORETO 362'),
+    ('PASAJE COCHABAMBA 332');
+
+-- Address Districts (must reference existing zones and streets)
+INSERT INTO address_districts (name, address_street_id, zone_id) VALUES
+    ('CERRILLOS', 1, 1),
+    ('CERRO NAVIA', 1, 1),
+    ('CONCHALI', 1, 1),
+    ('ESTACION CENTRAL', 1, 1),
+    ('HUECHURABA', 1, 1),
+    ('INDEPENDENCIA', 1, 1),
+    ('LA CISTERNA', 1, 1),
+    ('LA GRANJA', 1, 1),
+    ('LA REINA', 1, 1),
+    ('LO ESPEJO', 1, 1),
+    ('LAS CONDES', 1, 1),
+    ('MACUL', 1, 1),
+    ('NUNOA', 1, 1),
+    ('PEDRO AGUIRRE CERDA', 1, 1),
+    ('PENALOLEN', 1, 1),
+    ('PROVIDENCIA', 1, 1),
+    ('QUINTA NORMAL', 1, 1),
+    ('RECOLETA', 1, 1),
+    ('SANTIAGO', 1, 1),
+    ('SAN JOAQUIN', 1, 1),
+    ('SAN MIGUEL', 1, 1),
+    ('SAN RAMON', 1, 1),
+    ('VITACURA', 1, 1),
+    ('EL BOSQUE', 1, 2),
+    ('LA FLORIDA', 1, 2),
+    ('LA PINTANA', 1, 2),
+    ('QUILICURA', 1, 2),
+    ('LO BARNECHEA', 1, 3),
+    ('MAIPU', 1, 3),
+    ('PUDAHUEL', 1, 3),
+    ('RENCA', 1, 3),
+    ('SAN BERNARDO', 1, 3),
+    ('PUENTE ALTO', 1, 3),
+    ('PADRE HURTADO', 1, 3),
+    ('COLINA', 1, 3);
+
+-- Rates
+INSERT INTO rates (name, price, zone_id) VALUES
+    ('TFZ1', 3000, 1),
+    ('TFZ2', 3500, 2),
+    ('TFZ3', 4000, 3),
+    ('TNFZ1', 3000, 1),
+    ('TNFZ2', 3500, 2),
+    ('TNFZ3', 4000, 3);
+
+-- Addressees
+INSERT INTO addressees (last_name, first_name, phone, phone_prefix, national_id, national_id_verifier) VALUES
+    ('RODRIGUEZ', 'JESUS', 988475512, '+56', 24558889, 4),
+    ('PEREZ', 'PEDRO', 966564412, '+56', 25448996, 6),
+    ('LOPEZ', 'ALBERTO', 954412274, '+56', 25336958, 2),
+    ('GONZALEZ', 'GUILLERMO', 999887336, '+56', 8776552, 8),
+    ('JIMENEZ', 'MARIA', 999887336, '+56', 8876657, 5),
+    ('GUTIERREZ', 'JUAN', 988722542, '+56', 3366553, 3),
+    ('CABELLO', 'CAMILA', 983336625, '+56', 9337884, 2),
+    ('ALLEL', 'FRANCO', 977662552, '+56', 8833766, 1);
+
+-- Clients
+INSERT INTO clients (national_id, national_id_verifier, name, legal_name, phone, phone_prefix, credit_condition, address_street_id, district_id) VALUES
+    (76452889, 8, 'LOS AMIGOS SHOP', 'LOS AMIGOS SPA', 955442217, '+56', 'CONTADO', 1, 21),
+    (74112458, 4, 'LA PERFUMERIA', 'LA PERFUMERIA LTDA', 944122787, '+56', 'CONTADO', 1, 21),
+    (72112336, 5, 'LA REPRESA', 'LA REPRESA Y ASOCIADOS EIRL', 922586634, '+56', 'CREDITO', 1, 21);
+
+-- Client Zone Prices
+INSERT INTO client_zone_price (client_id, zone_id, price) VALUES
+    (1, 1, 3000),
+    (1, 2, 3500),
+    (1, 3, 4000),
+    (2, 1, 2800),
+    (2, 2, 3000),
+    (2, 3, 3500),
+    (3, 1, 2800),
+    (3, 2, 2800),
+    (3, 3, 2800);
+
+-- Drivers
+INSERT INTO drivers (national_id, national_id_verifier, first_name, last_name, active, email, phone, phone_prefix, address_street_id, district_id) VALUES
+    (26454887, 5, 'GUILLERMO', 'LEON', 1, 'emailejemplo@ejemplo.com', 988577444, '+56', 3, 30),
+    (26551228, 5, 'ALBERTO', 'RODRIGUEZ', 1, 'emailejemplo2@ejemplo.com', 966749512, '+56', 1, 21);
+
+-- Cars
+INSERT INTO cars (car_id, car_model, driver_id) VALUES
+    ('XXTD645', 'Chevrolet prius', 1),
+    ('FGJH475', 'Chevrolet NPR400', 2);
+
+-- Shipments
+INSERT INTO shipments (client_internal_id, quantity, status, comments, priority, delivery_date, reception_date, payment_comment, shipment_type, driver_id, client_id, rate_id, address_street_id, district_id, addressees_id) VALUES
+    (1, 1, 'RECEIVED', 'faucibus orci luctus et ultrices', 2, '2021-05-26', '2021-05-27', 'PAID', 1, 1, 2, 5, 2, 13, 1),
+    (2, 2, 'SEND', 'eget magna. Suspendisse tristique', 5, '2021-05-28', '2021-05-27', 'PAID', 3, 1, 2, 7, 12, 28, 2),
+    (3, 1, 'RESCHEDULED', 'montes', 3, '2021-05-26', '2021-05-27', 'PAID', 3, 2, 1, 6, 13, 5, 3),
+    (4, 1, 'RECEIVED', 'sagittis lobortis mauris', 5, '2021-05-27', '2021-05-27', 'PAID', 2, 2, 1, 3, 4, 27, 1),
+    (5, 2, 'RETURNED', 'Curae Donec tincidunt. Donec vitae', 4, '2021-05-28', '2021-05-27', 'PAID', 1, 2, 3, 8, 11, 2, 3);
+
+-- Geolocation (sample data)
+INSERT INTO geolocation (address_street_id, district_id, latitude, longitude) VALUES
+    (1, 1, -33.448890, -70.669265),
+    (1, 2, -33.457890, -70.679265),
+    (1, 3, -33.438890, -70.659265);
+
+/* Esta información viene de un repositorio en github, si no funciona lo que acá se muestra lo mejor es clonar el SQL de ese repositorio*/
+
 DROP TABLE IF EXISTS `dim_comuna`;
 CREATE TABLE `dim_comuna` (
     `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -441,6 +733,7 @@ VALUES (1, 'Arica y Parinacota', 'AP', 'Arica'),
     (14, 'Los Lagos', 'LL', 'Puerto Montt'),
     (15,'Aysén del General Carlos Ibáñez del Campo','AI','Coyhaique'),
     (16,'Magallanes y de la Antártica Chilena','MG','Punta Arenas');
+
 DROP TABLE IF EXISTS dim_location;
 CREATE TABLE dim_location (
     id INT PRIMARY KEY AUTO_INCREMENT,
@@ -456,3 +749,7 @@ SELECT
 FROM comuna c
     JOIN provincia p ON c.provincia_id = p.id
     JOIN region r ON p.region_id = r.id;
+
+- TODO:
+- Recrear esto en sqlite a ver si es posible
+- crear un dump pero con data erronea, con problemas, para crear un pipeline bronze, silver, gold, practicar limpieza y todo eso
