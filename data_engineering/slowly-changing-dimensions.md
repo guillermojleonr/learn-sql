@@ -30,3 +30,30 @@ Lo que sí puede evolucionar es que una dimensión pase de SCD1 a SCD2 si el neg
 queo
 - Se utilizan en entornos de **SQL Server Integration Services** y bases de datos estrella para analizar tendencias pasadas.
 - Esencial para seguimiento de datos maestros, como la dirección de un cliente, que cambian de manera impredecible.
+
+
+````sql
+============================================================================
+-- 6. SLOWLY CHANGING DIMENSIONS (SCD TYPE 2)
+============================================================================
+
+-- Detectar cambios y crear nuevas versiones
+INSERT INTO silver.customers_scd
+SELECT 
+    customer_id,
+    name,
+    email,
+    address,
+    CURRENT_TIMESTAMP as valid_from,
+    NULL as valid_to,
+    TRUE as is_current,
+    MD5(CONCAT(name, email, address)) as row_hash
+FROM bronze.customers_latest b
+WHERE NOT EXISTS (
+    SELECT 1 
+    FROM silver.customers_scd s
+    WHERE s.customer_id = b.customer_id
+      AND s.is_current = TRUE
+      AND MD5(CONCAT(b.name, b.email, b.address)) = s.row_hash
+);
+````
