@@ -54,7 +54,7 @@ At minimum, a valid SQL statement requires commands and clauses.
 
 - `SELECT` — Query records.
 - `INSERT` — Load data into the database.
-- `UPDATE` — Modify field values.
+- `UPDATE` — Modify field values. See detailed guide: [UPDATE Guide](update.md)
 - `DELETE` — Remove records.
 - `TRUNCATE` — Remove all records from a table.
 
@@ -67,23 +67,29 @@ At minimum, a valid SQL statement requires commands and clauses.
 
 - `COMMIT` — Save changes.
 - `ROLLBACK` — Undo changes.
-- `SAVEPOINT` — Set a transaction savepoint.
+- `SAVEPOINT` — Set a transaction savepoint. See full guide: [Transactions Guide](transactions.md)
 
 ---
 
 ## Clauses
 
-- `FROM`
-- `WHERE`
-- `GROUP BY`
-- `HAVING`
-- `ORDER BY`
-- `JOIN`
-- `LEFT JOIN`
-- `RIGHT JOIN`
-- `UNION` — Returns unique records only.
-- `UNION ALL` — Returns all records, including duplicates.
-- `ADD`
+- `FROM` — Defines the source tables for the query.
+- `WHERE` — Filters rows based on a condition.
+- `GROUP BY` — Aggregates rows sharing column values.
+- `HAVING` — Filters groups after aggregation.
+- `ORDER BY` — Sorts the result set.
+- `JOIN` — Combines rows from multiple tables based on a join condition.
+- `LEFT JOIN` — Returns all rows from the left table and matching rows from the right table.
+- `RIGHT JOIN` — Returns all rows from the right table and matching rows from the left table.
+- `UNION` — Combines result sets and removes duplicate rows.
+- `UNION ALL` — Combines result sets including duplicate rows.
+- `ADD` — Adds columns or constraints in DDL statements.
+- `EXISTS` — Tests for the existence of rows returned by a subquery, returns true if the subquery returns at least one row, and false otherwise.  
+- `NOT EXISTS` — Tests for the non-existence of rows returned by a subquery, returns true if the subquery returns no rows, and false otherwise.
+- `LIMIT` — Limits the number of rows returned by a query.  
+- `OFFSET` — Skips the specified number of rows before returning the result set.
+- `TOP` — Returns the top N rows from a query.
+
 
 ---
 

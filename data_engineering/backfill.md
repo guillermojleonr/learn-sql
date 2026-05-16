@@ -143,7 +143,7 @@ SELECT * FROM silver.orders;
 -- Opción 2: Snapshot (si tu DB lo soporta)
 CREATE TABLE silver.orders_backup_20240101
 SELECT * FROM silver.orders
-WHERE 1=1;  -- copia completa
+WHERE 1=1;  -- copia completa (WHERE 1=1 always true)
 
 -- Opción 3: Agregar columnas de auditoría antes del fix
 ALTER TABLE silver.orders 

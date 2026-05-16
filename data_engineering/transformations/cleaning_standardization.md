@@ -1,3 +1,4 @@
+-- Active: 1775008209648@@savingl.cl@3306
 # Limpieza y Estandarización
 
 Transformaciones básicas para normalizar y limpiar datos en pipelines ETL/ELT.
@@ -30,6 +31,38 @@ SELECT
     LOWER(TRIM(email)) as email,
     INITCAP(TRIM(name)) as name
 FROM bronze.customers;
+```
+
+---
+
+## Remover Tildes y Caracteres Especiales
+
+Normaliza el texto eliminando acentos y caracteres no deseados para facilitar búsquedas, comparaciones y compatibilidad de sistemas.
+
+### Antes (Bronze)
+
+| name | slug | description |
+|------|------|-------------|
+| "Sebastián" | "producto-n°1" | "Oferta - $100!!" |
+| "Mónica García" | "categoría/viva" | "¡Excelente estado!" |
+
+### Después (Silver)
+
+| name | slug | description |
+|------|------|-------------|
+| Sebastian | producto-n1 | Oferta - 100 |
+| Monica Garcia | categoriaviva | Excelente estado |
+
+### SQL
+
+Utilizando `TRANSLATE` para tildes y `REGEXP_REPLACE` para caracteres especiales.
+
+```sql
+SELECT 
+    TRANSLATE(name, 'áéíóúÁÉÍÓÚ', 'aeiouAEIOU') as name,
+    REGEXP_REPLACE(slug, '[^a-zA-Z0-9-]', '', 'g') as slug,
+    REGEXP_REPLACE(description, '[^a-zA-Z0-9 ]', '', 'g') as description
+FROM bronze.catalog;
 ```
 
 ---
@@ -73,5 +106,7 @@ FROM bronze.orders;
 | `TRIM()` | Elimina espacios en blanco | `"  hola  "` → `"hola"` |
 | `UPPER()` | Convierte a mayúsculas | `"hola"` → `"HOLA"` |
 | `LOWER()` | Convierte a minúsculas | `"HOLA"` → `"hola"` |
-| `INITCAP()` | Capitaliza palabras | `"juan García"` → `"Juan García"` |
-| `COALESCE()` | Reemplaza nulos | `COALESCE(NULL, 'default')` → `"default"` |
+| `INITCAP()` | Capitaliza la primera letra de cada palabra | `"juan pérez"` → `"Juan Pérez"` |
+| `TRANSLATE()` | Sustitución de caracteres (limpieza de tildes) | `TRANSLATE('á', 'á', 'a')` → `"a"` |
+| `REGEXP_REPLACE()` | Limpieza avanzada mediante expresiones regulares | `REGEXP_REPLACE('A#1', '[^A-Z0-9]', '')` → `"A1"` |
+| `COALESCE()` | Gestiona valores nulos asignando un valor por defecto | `COALESCE(NULL, 'N/A')` → `"N/A"` |
