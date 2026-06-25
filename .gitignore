@@ -4,3 +4,6 @@ Scripts
 Include
 share
 pyvenv.cfg
+
+# PostgreSQL local (Docker)
+.env
